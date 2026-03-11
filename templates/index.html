@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAULT — File Encryptor</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080a0f;
+    --surface: #0d1117;
+    --surface2: #131921;
+    --border: #1e2d40;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #7c3aed;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --success: #10b981;
+    --danger: #ef4444;
+    --glow: 0 0 20px rgba(0, 212, 255, 0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridMove 20s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes gridMove {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(60px); }
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+
+  .logo {
+    font-size: clamp(3rem, 8vw, 5rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--accent) 0%, #ffffff 50%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 8px;
+    animation: logoIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes logoIn {
+    from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .tagline {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    animation: fadeIn 1s 0.3s both;
+  }
+
+  .header-line {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin: 20px auto;
+    animation: fadeIn 1s 0.5s both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px;
+    margin-bottom: 32px;
+    animation: slideUp 0.6s 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: transparent;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .tab-btn.active {
+    background: var(--surface2);
+    color: var(--text);
+    box-shadow: 0 0 0 1px var(--border), var(--glow);
+  }
+
+  .tab-btn:hover:not(.active) {
+    color: var(--text);
+    background: rgba(255,255,255,0.03);
+  }
+
+  .tab-btn svg { width: 18px; height: 18px; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    animation: slideUp 0.6s 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    display: none;
+  }
+
+  .panel.active { display: block; }
+
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .dropzone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    box-shadow: var(--glow);
+  }
+
+  .dropzone:hover::before, .dropzone.dragover::before { opacity: 1; }
+
+  .dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 16px;
+    color: var(--accent);
+    opacity: 0.7;
+  }
+
+  .drop-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .drop-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .file-selected {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0, 212, 255, 0.05);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+  }
+
+  .file-selected.show { display: flex; }
+
+  .file-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(0, 212, 255, 0.1);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .file-info { flex: 1; overflow: hidden; }
+  .file-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .file-size {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .field-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .key-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .key-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text);
+    outline: none;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .key-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+  }
+
+  .key-input::placeholder { color: var(--text-muted); }
+
+  .btn {
+    padding: 14px 20px;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover {
+    color: var(--text);
+    border-color: var(--accent);
+    box-shadow: var(--glow);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent) 0%, #0090b8 100%);
+    color: #000;
+    font-weight: 800;
+    width: 100%;
+    justify-content: center;
+    padding: 18px;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.5s;
+  }
+
+  .btn-primary:hover::before { transform: translateX(100%); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,212,255,0.4); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .btn-danger {
+    background: linear-gradient(135deg, var(--accent2), #cc4400);
+    color: #fff;
+    font-weight: 800;
+    width: 100%;
+    justify-content: center;
+    padding: 18px;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-danger::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.15), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.5s;
+  }
+  .btn-danger:hover::before { transform: translateX(100%); }
+  .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(255,107,53,0.4); }
+  .btn-danger:active { transform: translateY(0); }
+  .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .key-file-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .key-file-label:hover { color: var(--text); border-color: var(--accent); box-shadow: var(--glow); }
+  .key-file-label input { display: none; }
+
+  .result-box {
+    margin-top: 24px;
+    border-radius: 12px;
+    padding: 20px;
+    display: none;
+    animation: resultIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @keyframes resultIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .result-box.success { display: block; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.3); }
+  .result-box.error { display: block; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .result-box.success .result-header { color: var(--success); }
+  .result-box.error .result-header { color: var(--danger); }
+
+  .key-display {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    word-break: break-all;
+    line-height: 1.7;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+
+  .key-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+  .btn-small { padding: 8px 14px; font-size: 0.75rem; border-radius: 8px; }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .progress-wrap { display: none; margin-top: 20px; }
+  .progress-wrap.show { display: block; }
+  .progress-bar-bg { background: var(--surface2); border-radius: 100px; height: 4px; overflow: hidden; }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    border-radius: 100px;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px var(--accent);
+    width: 0%;
+  }
+  .progress-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.1em;
+  }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  footer {
+    text-align: center;
+    margin-top: 60px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 600px) {
+    .panel { padding: 24px 20px; }
+    .key-group { flex-direction: column; }
+    .tabs { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">VAULT</div>
+    <div class="tagline">AES-256-GCM · File Encryption</div>
+    <div class="header-line"></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('enc')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      Encrypt
+    </button>
+    <button class="tab-btn" onclick="switchTab('dec')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 018 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+      Decrypt
+    </button>
+  </div>
+
+  <!-- ENCRYPT PANEL -->
+  <div class="panel active" id="panel-enc">
+    <div class="dropzone" id="dropzone-enc"
+         ondragover="handleDrag(event,'enc')"
+         ondragleave="handleDragLeave('enc')"
+         ondrop="handleDrop(event,'enc')">
+      <input type="file" id="file-enc" onchange="onFileSelect('enc')">
+      <svg class="drop-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+      </svg>
+      <div class="drop-title">Drop your file here</div>
+      <div class="drop-sub">or click to browse · any format supported</div>
+    </div>
+
+    <div class="file-selected" id="selected-enc">
+      <div class="file-icon">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      </div>
+      <div class="file-info">
+        <div class="file-name" id="selected-enc-name">—</div>
+        <div class="file-size" id="selected-enc-size">—</div>
+      </div>
+    </div>
+
+    <label class="field-label">Encryption Key <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(optional — auto-generated if left blank)</span></label>
+    <div class="key-group">
+      <input class="key-input" id="key-enc" type="text" placeholder="Paste an existing key or leave blank to generate a new one…">
+      <button class="btn btn-ghost" onclick="generateKey()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        Generate
+      </button>
+    </div>
+
+    <button class="btn btn-primary" id="btn-enc" onclick="encryptFile()">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      <span id="btn-enc-text">Encrypt File</span>
+      <div class="spinner" id="spinner-enc"></div>
+    </button>
+
+    <div class="progress-wrap" id="prog-enc">
+      <div class="progress-label" id="prog-enc-label">ENCRYPTING…</div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="prog-enc-fill"></div></div>
+    </div>
+
+    <div class="result-box" id="result-enc">
+      <div class="result-header">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+        <span id="result-enc-title">File encrypted successfully!</span>
+      </div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;font-family:'Space Mono',monospace;">
+        ⚠ Save this key. Without it, your data is unrecoverable.
+      </div>
+      <label class="field-label" style="margin-bottom:8px;">Your Key</label>
+      <div class="key-display" id="key-result">—</div>
+      <div class="key-actions">
+        <button class="btn btn-ghost btn-small" onclick="copyKey()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          Copy Key
+        </button>
+        <button class="btn btn-ghost btn-small" onclick="downloadKey()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Download Key (.key)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DECRYPT PANEL -->
+  <div class="panel" id="panel-dec">
+    <div class="dropzone" id="dropzone-dec"
+         ondragover="handleDrag(event,'dec')"
+         ondragleave="handleDragLeave('dec')"
+         ondrop="handleDrop(event,'dec')">
+      <input type="file" id="file-dec" onchange="onFileSelect('dec')" accept=".enc">
+      <svg class="drop-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 11V7a4 4 0 018 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+      </svg>
+      <div class="drop-title">Drop your .enc file here</div>
+      <div class="drop-sub">or click to browse</div>
+    </div>
+
+    <div class="file-selected" id="selected-dec">
+      <div class="file-icon" style="color:var(--accent2);background:rgba(255,107,53,0.1);">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      </div>
+      <div class="file-info">
+        <div class="file-name" id="selected-dec-name">—</div>
+        <div class="file-size" id="selected-dec-size">—</div>
+      </div>
+    </div>
+
+    <label class="field-label">Decryption Key</label>
+    <div class="key-group" style="margin-bottom:8px;">
+      <input class="key-input" id="key-dec" type="text" placeholder="Paste your key here…">
+    </div>
+
+    <div class="divider">or</div>
+
+    <label class="key-file-label" style="margin-bottom:24px;">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+      Select .key file
+      <input type="file" id="keyfile-dec" accept=".key,.txt" onchange="loadKeyFile()">
+    </label>
+
+    <button class="btn btn-danger" id="btn-dec" onclick="decryptFile()">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 11V7a4 4 0 018 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+      <span id="btn-dec-text">Decrypt File</span>
+      <div class="spinner" id="spinner-dec" style="border-top-color:#fff;border-color:rgba(255,255,255,0.2);"></div>
+    </button>
+
+    <div class="progress-wrap" id="prog-dec">
+      <div class="progress-label">DECRYPTING…</div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="prog-dec-fill" style="background:linear-gradient(90deg,var(--accent2),var(--accent3));box-shadow:0 0 8px var(--accent2);"></div></div>
+    </div>
+
+    <div class="result-box" id="result-dec">
+      <div class="result-header" id="result-dec-header">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+        <span id="result-dec-title">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>VAULT · AES-256-GCM · All files processed locally on this server</footer>
+
+<script>
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) =>
+      b.classList.toggle('active', (i === 0 && tab === 'enc') || (i === 1 && tab === 'dec')));
+    document.getElementById('panel-enc').classList.toggle('active', tab === 'enc');
+    document.getElementById('panel-dec').classList.toggle('active', tab === 'dec');
+  }
+
+  function handleDrag(e, id) {
+    e.preventDefault();
+    document.getElementById('dropzone-' + id).classList.add('dragover');
+  }
+  function handleDragLeave(id) {
+    document.getElementById('dropzone-' + id).classList.remove('dragover');
+  }
+  function handleDrop(e, id) {
+    e.preventDefault();
+    document.getElementById('dropzone-' + id).classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      document.getElementById('file-' + id).files = dt.files;
+      showFileInfo(id, file);
+    }
+  }
+
+  function onFileSelect(id) {
+    const f = document.getElementById('file-' + id).files[0];
+    if (f) showFileInfo(id, f);
+  }
+
+  function showFileInfo(id, file) {
+    document.getElementById('selected-' + id + '-name').textContent = file.name;
+    document.getElementById('selected-' + id + '-size').textContent = formatBytes(file.size);
+    document.getElementById('selected-' + id).classList.add('show');
+    hideResult(id);
+  }
+
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    if (b < 1073741824) return (b / 1048576).toFixed(1) + ' MB';
+    return (b / 1073741824).toFixed(2) + ' GB';
+  }
+
+  async function generateKey() {
+    try {
+      const r = await fetch('/api/generate-key');
+      const d = await r.json();
+      document.getElementById('key-enc').value = d.key;
+    } catch { alert('Failed to generate key.'); }
+  }
+
+  function loadKeyFile() {
+    const f = document.getElementById('keyfile-dec').files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = e => { document.getElementById('key-dec').value = e.target.result.trim(); };
+    reader.readAsText(f);
+  }
+
+  function setLoading(id, loading) {
+    const btn = document.getElementById('btn-' + id);
+    const txt = document.getElementById('btn-' + id + '-text');
+    const spin = document.getElementById('spinner-' + id);
+    btn.disabled = loading;
+    spin.style.display = loading ? 'block' : 'none';
+    txt.textContent = loading ? 'Processing…' : (id === 'enc' ? 'Encrypt File' : 'Decrypt File');
+  }
+
+  function animateProgress(id) {
+    const wrap = document.getElementById('prog-' + id);
+    const fill = document.getElementById('prog-' + id + '-fill');
+    wrap.classList.add('show');
+    let w = 0;
+    fill.style.width = '0%';
+    const iv = setInterval(() => {
+      w = Math.min(w + Math.random() * 15, 85);
+      fill.style.width = w + '%';
+    }, 200);
+    return { iv, fill, wrap };
+  }
+
+  function finishProgress(prog) {
+    clearInterval(prog.iv);
+    prog.fill.style.width = '100%';
+    setTimeout(() => { prog.wrap.classList.remove('show'); prog.fill.style.width = '0%'; }, 800);
+  }
+
+  function hideResult(id) {
+    document.getElementById('result-' + id).className = 'result-box';
+  }
+
+  function showError(id, msg) {
+    const box = document.getElementById('result-' + id);
+    box.className = 'result-box error';
+    document.getElementById('result-' + id + '-title').textContent = msg;
+  }
+
+  async function encryptFile() {
+    const fileInput = document.getElementById('file-enc');
+    if (!fileInput.files[0]) { alert('Please select a file first.'); return; }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    const key = document.getElementById('key-enc').value.trim();
+    if (key) formData.append('key', key);
+
+    setLoading('enc', true);
+    const prog = animateProgress('enc');
+    hideResult('enc');
+
+    try {
+      const resp = await fetch('/api/encrypt', { method: 'POST', body: formData });
+
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.error || 'Unknown error.');
+      }
+
+      const returnedKey = resp.headers.get('X-Key');
+      const blob = await resp.blob();
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileInput.files[0].name + '.enc';
+      a.click();
+      URL.revokeObjectURL(url);
+
+      finishProgress(prog);
+      setLoading('enc', false);
+
+      document.getElementById('key-result').textContent = returnedKey;
+      document.getElementById('result-enc-title').textContent = '✓ File encrypted — download started!';
+      document.getElementById('result-enc').className = 'result-box success';
+
+    } catch (e) {
+      finishProgress(prog);
+      setLoading('enc', false);
+      showError('enc', '✗ ' + e.message);
+    }
+  }
+
+  async function decryptFile() {
+    const fileInput = document.getElementById('file-dec');
+    const key = document.getElementById('key-dec').value.trim();
+    if (!fileInput.files[0]) { alert('Please select an .enc file.'); return; }
+    if (!key) { alert('Please enter the decryption key.'); return; }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('key', key);
+
+    setLoading('dec', true);
+    const prog = animateProgress('dec');
+    hideResult('dec');
+
+    try {
+      const resp = await fetch('/api/decrypt', { method: 'POST', body: formData });
+
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.error || 'Decryption failed.');
+      }
+
+      const blob = await resp.blob();
+      let name = fileInput.files[0].name.replace(/\.enc$/, '');
+      const disp = resp.headers.get('Content-Disposition');
+      if (disp) {
+        const m = disp.match(/filename[^;=\n]*=['"]?(.*?)['"]?$/);
+        if (m) name = decodeURIComponent(m[1]);
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      finishProgress(prog);
+      setLoading('dec', false);
+
+      document.getElementById('result-dec-title').textContent = '✓ File restored — download started!';
+      document.getElementById('result-dec-header').querySelector('svg').innerHTML =
+        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>';
+      document.getElementById('result-dec-header').style.color = 'var(--success)';
+      document.getElementById('result-dec').className = 'result-box success';
+
+    } catch (e) {
+      finishProgress(prog);
+      setLoading('dec', false);
+      const header = document.getElementById('result-dec-header');
+      header.querySelector('svg').innerHTML =
+        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>';
+      header.style.color = 'var(--danger)';
+      showError('dec', '✗ ' + e.message);
+    }
+  }
+
+  function copyKey() {
+    const k = document.getElementById('key-result').textContent;
+    navigator.clipboard.writeText(k).then(() => {
+      const btn = event.currentTarget;
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg> Copied!';
+      setTimeout(() => btn.innerHTML = orig, 2000);
+    });
+  }
+
+  function downloadKey() {
+    const k = document.getElementById('key-result').textContent;
+    const a = document.createElement('a');
+    a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(k);
+    a.download = 'vault_key_' + Date.now() + '.key';
+    a.click();
+  }
+</script>
+</body>
+</html>
