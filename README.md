@@ -2,6 +2,12 @@
 
 A web application for encrypting and decrypting files using **AES-256-GCM**, one of the strongest authenticated encryption algorithms available. Built with Python/Flask and containerized with Docker.
 
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-3.0.3-000000?style=for-the-badge&logo=flask&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![AES-256](https://img.shields.io/badge/AES--256--GCM-Encryption-10b981?style=for-the-badge&logo=letsencrypt&logoColor=white)
+![PyCryptodome](https://img.shields.io/badge/PyCryptodome-3.20.0-7c3aed?style=for-the-badge&logo=python&logoColor=white)
+
 <p align="center">
   <img width="49%" alt="screenshot-encrypt" src="https://github.com/user-attachments/assets/6df3a044-414d-4305-9585-9bebce30afb8" />
   <img width="49%" alt="screenshot-decrypt" src="https://github.com/user-attachments/assets/1d49ed72-e624-4e1e-84a7-e4ca7fe3fd79" />
