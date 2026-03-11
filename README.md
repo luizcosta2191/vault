@@ -6,7 +6,6 @@ A web application for encrypting and decrypting files using **AES-256-GCM**, one
   <img width="49%" alt="screenshot-encrypt" src="https://github.com/user-attachments/assets/6df3a044-414d-4305-9585-9bebce30afb8" />
   <img width="49%" alt="screenshot-decrypt" src="https://github.com/user-attachments/assets/1d49ed72-e624-4e1e-84a7-e4ca7fe3fd79" />
 </p>
----
 
 ## ✨ Features
 
